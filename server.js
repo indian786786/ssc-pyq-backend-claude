@@ -134,7 +134,7 @@ Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
         'Authorization': `Bearer ${GROK_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'grok-4-latest',
+        model: 'grok-4-1-fast-non-reasoning',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
