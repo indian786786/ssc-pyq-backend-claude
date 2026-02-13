@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSC PYQ Quiz</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            color: #333;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        .input-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .input-section input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        .input-section input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .quiz-section {
+            display: none;
+        }
+
+        .quiz-section.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        .question-number {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 12px;
+        }
+
+        .question-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            color: #222;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-btn {
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            text-align: left;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .option-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .option-btn.correct {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .option-btn.wrong {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .option-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .explanation {
+            display: none;
+            margin-top: 16px;
+            padding: 14px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #856404;
+        }
+
+        .explanation.show {
+            display: block;
+        }
+
+        .next-btn {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .next-btn.show {
+            display: block;
+        }
+
+        .results-section {
+            display: none;
+            text-align: center;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            margin: 20px auto;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            font-weight: 700;
+        }
+
+        .results-text {
+            font-size: 18px;
+            margin-bottom: 24px;
+            color: #555;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            display: none;
+            padding: 14px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            color: #721c24;
+            margin-bottom: 16px;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 SSC PYQ Quiz</h1>
+            <p>Test Your Knowledge</p>
+        </div>
+
+        <div class="card" id="topicSection">
+            <div class="error-message" id="errorMessage"></div>
+            
+            <div class="input-section">
+                <label for="topicInput">Enter Topic:</label>
+                <input 
+                    type="text" 
+                    id="topicInput" 
+                    placeholder="e.g., Indian Constitution, Lodi Dynasty"
+                    maxlength="100"
+                >
+            </div>
+            
+            <button class="btn btn-primary" id="startBtn">
+                Start Quiz
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Generating questions...</p>
+            </div>
+        </div>
+
+        <div class="card quiz-section" id="quizSection">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div class="question-number" id="questionNumber">Question 1 of 10</div>
+            <div class="question-text" id="questionText"></div>
+
+            <div class="options" id="optionsContainer"></div>
+
+            <div class="explanation" id="explanation"></div>
+
+            <button class="btn btn-primary next-btn" id="nextBtn">
+                Next Question →
+            </button>
+        </div>
+
+        <div class="card results-section" id="resultsSection">
+            <h2>🎉 Quiz Complete!</h2>
+            <div class="score-circle" id="scoreCircle">0/10</div>
+            <div class="results-text" id="resultsText"></div>
+            <button class="btn btn-primary" id="restartBtn">
+                Take Another Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'https://ssc-pyq-backend-claude-production.up.railway.app';
+
+        let questions = [];
+        let currentIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        const topicSection = document.getElementById('topicSection');
+        const quizSection = document.getElementById('quizSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const topicInput = document.getElementById('topicInput');
+        const startBtn = document.getElementById('startBtn');
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('errorMessage');
+        const questionNumber = document.getElementById('questionNumber');
+        const questionText = document.getElementById('questionText');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const explanation = document.getElementById('explanation');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressFill = document.getElementById('progressFill');
+        const scoreCircle = document.getElementById('scoreCircle');
+        const resultsText = document.getElementById('resultsText');
+        const restartBtn = document.getElementById('restartBtn');
+
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        startBtn.addEventListener('click', async () => {
+            const topic = topicInput.value.trim();
+
+            if (!topic) {
+                showError('Please enter a topic');
+                return;
+            }
+
+            if (topic.length < 3) {
+                showError('Topic must be at least 3 characters');
+                return;
+            }
+
+            await fetchQuestions(topic);
+        });
+
+        async function fetchQuestions(topic) {
+            try {
+                showError('');
+                startBtn.disabled = true;
+                loading.classList.add('show');
+
+                const response = await fetch(`${BACKEND_URL}/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ topic })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to generate questions');
+                }
+
+                questions = data.questions;
+                currentIndex = 0;
+                score = 0;
+                
+                showQuizSection();
+                displayQuestion();
+
+            } catch (error) {
+                showError(error.message);
+                startBtn.disabled = false;
+                loading.classList.remove('show');
+            }
+        }
+
+        function displayQuestion() {
+            if (currentIndex >= questions.length) {
+                showResults();
+                return;
+            }
+
+            const q = questions[currentIndex];
+            answered = false;
+
+            questionNumber.textContent = `Question ${currentIndex + 1} of ${questions.length}`;
+            questionText.textContent = q.question;
+            
+            const progress = ((currentIndex + 1) / questions.length) * 100;
+            progressFill.style.width = `${progress}%`;
+
+            optionsContainer.innerHTML = '';
+            explanation.classList.remove('show');
+            nextBtn.classList.remove('show');
+
+            q.options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = option;
+                btn.onclick = () => handleAnswer(index);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(selectedIndex) {
+            if (answered) return;
+
+            answered = true;
+            const q = questions[currentIndex];
+            const buttons = optionsContainer.querySelectorAll('.option-btn');
+
+            buttons.forEach((btn, index) => {
+                btn.disabled = true;
+                
+                if (index === q.correct) {
+                    btn.classList.add('correct');
+                }
+                
+                if (index === selectedIndex && index !== q.correct) {
+                    btn.classList.add('wrong');
+                }
+            });
+
+            if (selectedIndex === q.correct) {
+                score++;
+            }
+
+            explanation.textContent = q.explanation;
+            explanation.classList.add('show');
+            nextBtn.classList.add('show');
+        }
+
+        nextBtn.addEventListener('click', () => {
+            currentIndex++;
+            displayQuestion();
+        });
+
+        function showResults() {
+            quizSection.classList.remove('active');
+            resultsSection.classList.add('active');
+
+            scoreCircle.textContent = `${score}/10`;
+            
+            const percentage = (score / questions.length) * 100;
+            let message = '';
+
+            if (percentage >= 80) {
+                message = '🌟 Excellent! You\'re well prepared!';
+            } else if (percentage >= 60) {
+                message = '👍 Good job! Keep practicing!';
+            } else if (percentage >= 40) {
+                message = '📖 Not bad! More practice needed.';
+            } else {
+                message = '💪 Keep learning! You\'ll improve!';
+            }
+
+            resultsText.textContent = message;
+        }
+
+        restartBtn.addEventListener('click', () => {
+            resultsSection.classList.remove('active');
+            topicSection.style.display = 'block';
+            topicInput.value = '';
+            startBtn.disabled = false;
+            loading.classList.remove('show');
+        });
+
+        function showQuizSection() {
+            topicSection.style.display = 'none';
+            quizSection.classList.add('active');
+            loading.classList.remove('show');
+        }
+
+        function showError(message) {
+            if (message) {
+                errorMessage.textContent = message;
+                errorMessage.classList.add('show');
+            } else {
+                errorMessage.classList.remove('show');
+            }
+        }
+
+        topicInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !startBtn.disabled) {
+                startBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
