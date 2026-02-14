@@ -281,12 +281,7 @@
             
             <div class="input-section">
                 <label for="topicInput">Enter Topic:</label>
-                <input 
-                    type="text" 
-                    id="topicInput" 
-                    placeholder="e.g., Indian Constitution, Lodi Dynasty"
-                    maxlength="100"
-                >
+                
             </div>
             
             <button class="btn btn-primary" id="startBtn">
@@ -302,7 +297,26 @@
         <div class="card quiz-section" id="quizSection">
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
-            </div>
+   <select id="subjectSelect">
+  <option value="">Select Subject</option>
+  <option value="History">History</option>
+  <option value="Polity">Polity</option>
+  <option value="Economics">Economics</option>
+  <option value="Geography">Geography</option>
+  <option value="General Science (10th Level)">General Science (10th Level)</option>
+  <option value="Mathematics">Mathematics</option>
+  <option value="Reasoning">Reasoning</option>
+  <option value="Computer">Computer</option>
+  <option value="English">English</option>
+  <option value="Hindi">Hindi</option>
+</select>
+
+<input 
+  type="text" 
+  id="topicInput" 
+  placeholder="Optional: specific topic (e.g., Lodi Dynasty)"
+  maxlength="100"
+/>         </div>
 
             <div class="question-number" id="questionNumber">Question 1 of 10</div>
             <div class="question-text" id="questionText"></div>
