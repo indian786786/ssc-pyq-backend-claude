@@ -7,8 +7,8 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const GROK_API_KEY = process.env.GROK_API_KEY;
-const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const REQUEST_TIMEOUT = 25000;
 
 function validateTopic(topic) {
@@ -93,8 +93,8 @@ function validateQuestions(questions) {
 }
 
 async function generateQuestions(topic) {
-  if (!GROK_API_KEY) {
-    throw new Error('GROK_API_KEY not configured in environment variables');
+  if (!OPENROUTER_API_KEY) {
+  throw new Error('OPENROUTER_API_KEY not configured in environment variables');
   }
 
   const systemPrompt = `You are an SSC exam question generator. Generate EXACTLY 10 multiple choice questions on the given topic.
@@ -127,23 +127,25 @@ Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
   try {
     console.log(`[GROK] Calling API for topic: ${topic}`);
     
-    const response = await fetch(GROK_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROK_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'grok-4-1-fast-non-reasoning',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 3000
-      }),
-      signal: controller.signal
-    });
+    const response = await fetch(OPENROUTER_API_URL, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+    'HTTP-Referer': 'https://ssc-pyq-backend-claude-production.up.railway.app',
+    'X-Title': 'SSC PYQ Quiz Generator'
+  },
+  body: JSON.stringify({
+    model: 'meta-llama/llama-3.2-3b-instruct:free',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ],
+    temperature: 0.4,
+    max_tokens: 2000
+  }),
+  signal: controller.signal
+});
 
     clearTimeout(timeoutId);
 
