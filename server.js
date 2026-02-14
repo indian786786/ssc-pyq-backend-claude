@@ -136,14 +136,15 @@ Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
     'X-Title': 'SSC PYQ Quiz Generator'
   },
   body: JSON.stringify({
-    model: 'meta-llama/llama-3.2-3b-instruct:free',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ],
-    temperature: 0.4,
-    max_tokens: 2000
-  }),
+  model: 'meta-llama/llama-3.2-3b-instruct:free',
+  messages: [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt }
+  ],
+  temperature: 0.4,
+  max_tokens: 2000,
+  response_format: { type: "json_object" }
+}),
   signal: controller.signal
 });
 
@@ -159,11 +160,14 @@ Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
 
     const data = await response.json();
     
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response structure from OPENROUTER API');
-    }
+    const content = data?.choices?.[0]?.message?.content;
 
-    const content = data.choices[0].message.content;
+if (!content) {
+  console.error('Full OpenRouter response:', JSON.stringify(data));
+  throw new Error('Invalid response structure from OPENROUTER API');
+}
+
+    
     console.log(`[OPENROUTER] Raw response length: ${content.length} chars`);
 
     const questions = extractJSON(content);
