@@ -370,7 +370,19 @@
         tg.expand();
 
         startBtn.addEventListener('click', async () => {
-            const topic = topicInput.value.trim();
+            const subject = document.getElementById('subjectSelect').value;
+const specificTopic = topicInput.value.trim();
+
+if (!subject) {
+  showError("Please select a subject");
+  return;
+}
+
+let finalTopic = subject;
+
+if (specificTopic) {
+  finalTopic = subject + " - " + specificTopic;
+}
 
             if (!topic) {
                 showError('Please enter a topic');
