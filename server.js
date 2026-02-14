@@ -136,7 +136,7 @@ Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
     'X-Title': 'SSC PYQ Quiz Generator'
   },
   body: JSON.stringify({
-  model: 'meta-llama/llama-3.2-3b-instruct:free',
+  model: 'mistralai/mistral-7b-instruct:free',
   messages: [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt }
