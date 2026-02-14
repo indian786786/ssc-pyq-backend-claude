@@ -143,7 +143,6 @@ Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
   ],
   temperature: 0.4,
   max_tokens: 2000,
-  response_format: { type: "json_object" }
 }),
   signal: controller.signal
 });
