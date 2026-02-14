@@ -9,231 +9,209 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const REQUEST_TIMEOUT = 25000;
+const REQUEST_TIMEOUT = 5000; // 5 seconds max
+
+// ================= VALIDATION =================
 
 function validateTopic(topic) {
   if (!topic || typeof topic !== 'string') {
     return { valid: false, error: 'Topic is required and must be a string' };
   }
-  
+
   const trimmed = topic.trim();
-  
+
   if (trimmed.length < 3) {
     return { valid: false, error: 'Topic must be at least 3 characters long' };
   }
-  
+
   if (trimmed.length > 100) {
     return { valid: false, error: 'Topic must be less than 100 characters' };
   }
-  
+
   const validPattern = /^[a-zA-Z0-9\s\-,.'&()]+$/;
   if (!validPattern.test(trimmed)) {
     return { valid: false, error: 'Topic contains invalid characters' };
   }
-  
+
   return { valid: true, topic: trimmed };
 }
+
+// ================= JSON EXTRACTION =================
 
 function extractJSON(text) {
   try {
     return JSON.parse(text);
-  } catch (e) {
-    // Continue
-  }
-  
-  const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*\}|\[[\s\S]*\])\s*```/);
-  if (codeBlockMatch) {
-    try {
-      return JSON.parse(codeBlockMatch[1]);
-    } catch (e) {
-      // Continue
-    }
-  }
-  
-  const jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  } catch (e) {}
+
+  const jsonMatch = text.match(/(\[[\s\S]*\])/);
   if (jsonMatch) {
-    try {
-      return JSON.parse(jsonMatch[1]);
-    } catch (e) {
-      // Continue
-    }
+    return JSON.parse(jsonMatch[1]);
   }
-  
+
   throw new Error('No valid JSON found in response');
 }
+
+// ================= QUESTION VALIDATION =================
 
 function validateQuestions(questions) {
   if (!Array.isArray(questions)) {
     throw new Error('Questions must be an array');
   }
-  
-  if (questions.length !== 10) {
-    throw new Error(`Expected 10 questions, got ${questions.length}`);
+
+  if (questions.length !== 5) {
+    throw new Error(`Expected 5 questions, got ${questions.length}`);
   }
-  
+
   questions.forEach((q, index) => {
     if (!q.question || typeof q.question !== 'string') {
-      throw new Error(`Question ${index + 1}: Missing or invalid 'question' field`);
+      throw new Error(`Question ${index + 1}: Invalid question`);
     }
-    
+
     if (!Array.isArray(q.options) || q.options.length !== 4) {
-      throw new Error(`Question ${index + 1}: Must have exactly 4 options`);
+      throw new Error(`Question ${index + 1}: Must have 4 options`);
     }
-    
+
     if (typeof q.correct !== 'number' || q.correct < 0 || q.correct > 3) {
-      throw new Error(`Question ${index + 1}: 'correct' must be 0, 1, 2, or 3`);
+      throw new Error(`Question ${index + 1}: Invalid correct index`);
     }
-    
+
     if (!q.explanation || typeof q.explanation !== 'string') {
-      throw new Error(`Question ${index + 1}: Missing or invalid 'explanation' field`);
+      throw new Error(`Question ${index + 1}: Invalid explanation`);
     }
   });
-  
+
   return true;
 }
 
+// ================= GENERATE QUESTIONS =================
+
 async function generateQuestions(topic) {
   if (!OPENROUTER_API_KEY) {
-  throw new Error('OPENROUTER_API_KEY not configured in environment variables');
+    throw new Error('OPENROUTER_API_KEY not configured');
   }
 
-  const systemPrompt = `You are an SSC exam question generator. Generate EXACTLY 10 multiple choice questions on the given topic.
+  const prompt = `
+Generate EXACTLY 5 SSC exam multiple choice questions.
 
-CRITICAL RULES:
-1. Return ONLY valid JSON, no markdown, no explanation outside JSON
-2. Questions must be SSC CGL/CHSL/GD standard
-3. Questions must be factual and exam-oriented
-4. Each question must have exactly 4 options
-5. Only 1 correct answer (index 0-3)
-6. Include a brief explanation
+Rules:
+- SSC CGL/CHSL/GD level
+- Factual only
+- 4 options
+- One correct answer (0-3 index)
+- Explanation must be ONE short sentence
 
-JSON FORMAT (return array directly):
+Return ONLY JSON array:
+
 [
   {
-    "question": "Question text here?",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "question": "",
+    "options": ["", "", "", ""],
     "correct": 0,
-    "explanation": "Brief explanation here."
+    "explanation": ""
   }
 ]
 
-Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
-
-  const userPrompt = `Generate 10 SSC-level multiple choice questions on: ${topic}`;
+Topic: ${topic}
+`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
   try {
-    console.log(`[OPENROUTER] Calling API for topic: ${topic}`);
-    
+    console.log(`[AI] Generating 5 questions for: ${topic}`);
+
     const response = await fetch(OPENROUTER_API_URL, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-    'HTTP-Referer': 'https://ssc-pyq-backend-claude-production.up.railway.app',
-    'X-Title': 'SSC PYQ Quiz Generator'
-  },
-  body: JSON.stringify({
-  model: 'google/gemma-3n-e4b-it:free',
-  messages: [
-  { 
-    role: 'user', 
-    content: systemPrompt + "\n\n" + userPrompt 
-  }
-],
-  temperature: 0.2,
-  max_tokens: 1500,
-}),
-  signal: controller.signal
-});
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': process.env.RAILWAY_PUBLIC_DOMAIN || 'https://railway.app',
+        'X-Title': 'SSC Quiz Bot'
+      },
+      body: JSON.stringify({
+        model: 'google/gemma-3n-e4b-it:free',
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1,
+        max_tokens: 800
+      }),
+      signal: controller.signal
+    });
 
     clearTimeout(timeoutId);
 
-    console.log(`[OPENROUTER] Response status: ${response.status}`);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[OPENROUTER] Error response: ${errorText}`);
-      throw new Error(`OPENROUTER API error: ${response.status} - ${errorText}`);
+      throw new Error(`AI error ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
-    
     const content = data?.choices?.[0]?.message?.content;
 
-if (!content) {
-  console.error('Full OpenRouter response:', JSON.stringify(data));
-  throw new Error('Invalid response structure from OPENROUTER API');
-}
-
-    
-    console.log(`[OPENROUTER] Raw response length: ${content.length} chars`);
+    if (!content) {
+      throw new Error('Empty AI response');
+    }
 
     const questions = extractJSON(content);
     validateQuestions(questions);
-    
-    console.log(`[OPENROUTER] Successfully generated ${questions.length} questions`);
-    
+
+    console.log(`[AI] Success`);
     return questions;
 
   } catch (error) {
     clearTimeout(timeoutId);
-    
+
     if (error.name === 'AbortError') {
-      throw new Error('Request timeout - AI took too long to respond');
+      throw new Error('Request timeout (5s exceeded)');
     }
-    
+
     throw error;
   }
 }
+
+// ================= ROUTES =================
 
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
     service: 'SSC PYQ Quiz Generator',
-    timestamp: new Date().toISOString()
+    questions_per_request: 5
   });
 });
 
 app.post('/generate', async (req, res) => {
-  console.log('[REQUEST] Received generate request');
-  
   try {
     const { topic } = req.body;
-    
+
     const validation = validateTopic(topic);
     if (!validation.valid) {
-      console.log(`[VALIDATION] Failed: ${validation.error}`);
       return res.status(400).json({
         success: false,
         error: validation.error
       });
     }
 
-    const validatedTopic = validation.topic;
-    console.log(`[VALIDATION] Topic approved: ${validatedTopic}`);
-
-    const questions = await generateQuestions(validatedTopic);
+    const questions = await generateQuestions(validation.topic);
 
     res.json({
       success: true,
-      topic: validatedTopic,
+      topic: validation.topic,
       total: questions.length,
-      questions: questions
+      questions
     });
 
   } catch (error) {
     console.error('[ERROR]', error.message);
-    
+
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to generate questions'
+      error: error.message
     });
   }
 });
 
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -241,16 +219,6 @@ app.use((req, res) => {
   });
 });
 
-app.use((err, req, res, next) => {
-  console.error('[FATAL ERROR]', err);
-  res.status(500).json({
-    success: false,
-    error: 'Internal server error'
-  });
-});
-
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`✅ OPENROUTER_API_KEY configured: ${OPENROUTER_API_KEY ? 'Yes' : 'No'}`);
-  });
+  console.log(`🚀 Server running on port ${PORT}`);
+});
