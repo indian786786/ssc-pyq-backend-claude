@@ -136,13 +136,13 @@ Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
     'X-Title': 'SSC PYQ Quiz Generator'
   },
   body: JSON.stringify({
-  model: 'google/gemini-flash-1.5',
+  model: 'google/gemma-3n-e4b-it:free',
   messages: [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt }
   ],
-  temperature: 0.4,
-  max_tokens: 2000,
+  temperature: 0.2,
+  max_tokens: 1500,
 }),
   signal: controller.signal
 });
