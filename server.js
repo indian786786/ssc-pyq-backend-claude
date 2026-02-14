@@ -125,7 +125,7 @@ Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
   try {
-    console.log(`[GROK] Calling API for topic: ${topic}`);
+    console.log(`[OPENROUTER] Calling API for topic: ${topic}`);
     
     const response = await fetch(OPENROUTER_API_URL, {
   method: 'POST',
@@ -149,27 +149,27 @@ Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
 
     clearTimeout(timeoutId);
 
-    console.log(`[GROK] Response status: ${response.status}`);
+    console.log(`[OPENROUTER] Response status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[GROK] Error response: ${errorText}`);
-      throw new Error(`Grok API error: ${response.status} - ${errorText}`);
+      console.error(`[OPENROUTER] Error response: ${errorText}`);
+      throw new Error(`OPENROUTER API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response structure from Grok API');
+      throw new Error('Invalid response structure from OPENROUTER API');
     }
 
     const content = data.choices[0].message.content;
-    console.log(`[GROK] Raw response length: ${content.length} chars`);
+    console.log(`[OPENROUTER] Raw response length: ${content.length} chars`);
 
     const questions = extractJSON(content);
     validateQuestions(questions);
     
-    console.log(`[GROK] Successfully generated ${questions.length} questions`);
+    console.log(`[OPENROUTER] Successfully generated ${questions.length} questions`);
     
     return questions;
 
@@ -247,5 +247,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`✅ GROK_API_KEY configured: ${GROK_API_KEY ? 'Yes' : 'No'}`);
-});
+  console.log(`✅ OPENROUTER_API_KEY configured: ${OPENROUTER_API_KEY ? 'Yes' : 'No'}`);
+  });
