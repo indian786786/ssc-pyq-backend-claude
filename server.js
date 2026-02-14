@@ -138,9 +138,11 @@ Return ONLY the JSON array. No markdown. No code blocks. No extra text.`;
   body: JSON.stringify({
   model: 'google/gemma-3n-e4b-it:free',
   messages: [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: userPrompt }
-  ],
+  { 
+    role: 'user', 
+    content: systemPrompt + "\n\n" + userPrompt 
+  }
+],
   temperature: 0.2,
   max_tokens: 1500,
 }),
