@@ -9,9 +9,9 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const REQUEST_TIMEOUT = 5000; // 5 seconds max
+const REQUEST_TIMEOUT = 5000; // 5 seconds hard limit
 
-// ================= VALIDATION =================
+// ================= VALIDATE TOPIC =================
 
 function validateTopic(topic) {
   if (!topic || typeof topic !== 'string') {
@@ -41,17 +41,17 @@ function validateTopic(topic) {
 function extractJSON(text) {
   try {
     return JSON.parse(text);
-  } catch (e) {}
+  } catch {}
 
-  const jsonMatch = text.match(/(\[[\s\S]*\])/);
-  if (jsonMatch) {
-    return JSON.parse(jsonMatch[1]);
+  const match = text.match(/(\[[\s\S]*\])/);
+  if (match) {
+    return JSON.parse(match[1]);
   }
 
-  throw new Error('No valid JSON found in response');
+  throw new Error('Invalid JSON from AI');
 }
 
-// ================= QUESTION VALIDATION =================
+// ================= VALIDATE QUESTIONS =================
 
 function validateQuestions(questions) {
   if (!Array.isArray(questions)) {
@@ -90,21 +90,143 @@ async function generateQuestions(topic) {
     throw new Error('OPENROUTER_API_KEY not configured');
   }
 
+  // 🔥 Fast FREE small models only
+  const MODELS = [
+    'google/gemma-3n-e4b-it:free',
+    'microsoft/phi-3-mini-128k-instruct:free',
+    'liquid/lfm2.5-1.2b-instruct:free'
+  ];
+
   const prompt = `
-Generate EXACTLY 5 SSC exam multiple choice questions.
+Generate EXACTLY 5 SSC exam MCQs.
 
 Rules:
 - SSC CGL/CHSL/GD level
-- Factual only
+- Factual
 - 4 options
-- One correct answer (0-3 index)
-- Explanation must be ONE short sentence
+- correct index (0-3)
+- explanation ONE short sentence
 
-Return ONLY JSON array:
+Return ONLY JSON array.
 
-[
-  {
-    "question": "",
+Topic: ${topic}
+`;
+
+  for (let model of MODELS) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+    try {
+      console.log(`Trying model: ${model}`);
+
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': process.env.RAILWAY_PUBLIC_DOMAIN || 'https://railway.app',
+          'X-Title': 'SSC Quiz Bot'
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.1,
+          max_tokens: 700
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.log(`Model failed: ${model} (${response.status})`);
+        continue;
+      }
+
+      const data = await response.json();
+      const content = data?.choices?.[0]?.message?.content;
+
+      if (!content) {
+        console.log(`Empty response from ${model}`);
+        continue;
+      }
+
+      const questions = extractJSON(content);
+      validateQuestions(questions);
+
+      console.log(`Success with ${model}`);
+      return questions;
+
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error.name === 'AbortError') {
+        console.log(`Timeout: ${model}`);
+      } else {
+        console.log(`Error with ${model}: ${error.message}`);
+      }
+
+      continue;
+    }
+  }
+
+  throw new Error('All AI models failed. Please try again.');
+}
+
+// ================= ROUTES =================
+
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    service: 'SSC PYQ Quiz Generator',
+    questions_per_request: 5
+  });
+});
+
+app.post('/generate', async (req, res) => {
+  try {
+    const { topic } = req.body;
+
+    const validation = validateTopic(topic);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: validation.error
+      });
+    }
+
+    const questions = await generateQuestions(validation.topic);
+
+    res.json({
+      success: true,
+      topic: validation.topic,
+      total: questions.length,
+      questions
+    });
+
+  } catch (error) {
+    console.error('ERROR:', error.message);
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Endpoint not found'
+  });
+});
+
+// ================= START SERVER =================
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});    "question": "",
     "options": ["", "", "", ""],
     "correct": 0,
     "explanation": ""
